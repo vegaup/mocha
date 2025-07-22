@@ -2,7 +2,7 @@
 
 #include <X11/Xlib.h>
 
-ClientState client_states[MAX_CLIENTS];
+ClientState client_states[MAX_CLIENTS] = {0};
 Window managed_clients[MAX_CLIENTS];
 int num_managed_clients = 0;
 

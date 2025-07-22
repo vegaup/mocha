@@ -49,11 +49,13 @@ int main(int argc, char **argv) {
     colormap = DefaultColormap(dpy, screen);
 
     struct Config config = {0};
-    config.tiling_enabled = 1;
+    config.tiling_enabled = 0;
     parse_config(path_config, &config);    // general/top-level
     parse_config(path_theme, &config);     // colors
     parse_config(path_keybinds, &config);  // keybinds
     parse_config(path_features, &config);  // features
+
+    mocha_log("Final tiling_enabled value: %d", config.tiling_enabled);
 
     XColor border_xcolor, focus_xcolor, panel_xcolor, foreground_xcolor, accent_xcolor;
     if(config.colors.border[0]) XParseColor(dpy, colormap, config.colors.border, &border_xcolor);
@@ -71,7 +73,7 @@ int main(int argc, char **argv) {
     XAllocColor(dpy, colormap, &focus_xcolor); focus_color = focus_xcolor.pixel;
     XAllocColor(dpy, colormap, &panel_xcolor); panel_color = panel_xcolor.pixel;
     XAllocColor(dpy, colormap, &foreground_xcolor); foreground_color = foreground_xcolor.pixel;
-    if (!foreground_color) mocha_log("Warning: foreground_color allocation failed, text may be black");
+    if(!foreground_color) mocha_log("Warning: foreground_color allocation failed, text may be black");
     XAllocColor(dpy, colormap, &accent_xcolor); accent_color = accent_xcolor.pixel;
 
     if(config.exec_one[0]) system(config.exec_one);
@@ -126,14 +128,14 @@ int main(int argc, char **argv) {
         fclose(lock);
     }
 
+    struct DragState drag_state = {0};
+
     XEvent event;
     for(;;) {
         cleanup_toasts();
         XNextEvent(dpy, &event);
 
-        mocha_handle_event(event, taskbar, active_window, taskbar_height,
-                           start_x, start_y, win_x, win_y, win_w, win_h,
-                           dragging, resizing, config.tiling_enabled);
+        mocha_handle_event(event, taskbar, &drag_state, taskbar_height, config.tiling_enabled);
     }
 
     XCloseDisplay(dpy);

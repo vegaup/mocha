@@ -15,6 +15,7 @@
 /* Struct to keep track of client state */
 typedef struct {
     int is_fullscreen;
+    int is_minimized; // NEW: track if window is minimized
     int saved_x, saved_y, saved_w, saved_h;
 } ClientState;
 

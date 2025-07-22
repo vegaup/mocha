@@ -6,6 +6,53 @@
 #include "features/launcher.h"
 #include "main.h"
 #include "ui/toast.h"
+#include "util/client.h"
+
+void update_window_borders(Window focused);
+
+static void minimize_window(Window w) {
+    ClientState *state = mocha_get_client_state(w);
+    if (!state->is_minimized) {
+        XUnmapWindow(dpy, w);
+        state->is_minimized = 1;
+    }
+}
+static void restore_window(Window w) {
+    ClientState *state = mocha_get_client_state(w);
+    if (state->is_minimized) {
+        XMapWindow(dpy, w);
+        XRaiseWindow(dpy, w);
+        XSetInputFocus(dpy, w, RevertToPointerRoot, CurrentTime);
+        state->is_minimized = 0;
+    }
+}
+static void toggle_maximize_window(Window w) {
+    ClientState *state = mocha_get_client_state(w);
+    int border = BORDER_WIDTH;
+    if(state->is_fullscreen) {
+        XMoveResizeWindow(dpy, w, state->saved_x, state->saved_y, state->saved_w, state->saved_h);
+        state->is_fullscreen = 0;
+    } else {
+        XWindowAttributes attr;
+        XGetWindowAttributes(dpy, w, &attr);
+        state->saved_x = attr.x;
+        state->saved_y = attr.y;
+        state->saved_w = attr.width;
+        state->saved_h = attr.height;
+        int screen_w = DisplayWidth(dpy, screen);
+        int screen_h = DisplayHeight(dpy, screen);
+        XMoveResizeWindow(dpy, w, 0, 0, screen_w - 2 * border, screen_h - 2 * border);
+        state->is_fullscreen = 1;
+    }
+    update_window_borders(w);
+}
+
+static int is_managed_client(Window w) {
+    for (int i = 0; i < num_managed_clients; ++i) {
+        if (managed_clients[i] == w) return 1;
+    }
+    return 0;
+}
 
 void update_window_borders(Window focused) {
     ClientState *c;
@@ -20,10 +67,8 @@ void update_window_borders(Window focused) {
     mocha_for_each_client_end
 }
 
-void mocha_handle_event(XEvent event, Window taskbar, Window active_window,
-                        int taskbar_height, int start_x, int start_y, int win_x,
-                        int win_y, int win_w, int win_h, int dragging,
-                        int resizing, int tiling_enabled) {
+void mocha_handle_event(XEvent event, Window taskbar, struct DragState *drag_state,
+                        int taskbar_height, int tiling_enabled) {
     switch(event.type) {
         case ButtonPress: {
             XButtonEvent *e = &event.xbutton;
@@ -33,30 +78,32 @@ void mocha_handle_event(XEvent event, Window taskbar, Window active_window,
 
             if(XQueryPointer(dpy, root, &root, &child, &root_x, &root_y,
                              &win_rel_x, &win_rel_y, &mask)) {
-                if(child != None) {
+                if(child != None && is_managed_client(child)) {
                     XWindowAttributes attr;
                     XGetWindowAttributes(dpy, child, &attr);
-                    active_window = child;
-                    start_x = e->x_root;
-                    start_y = e->y_root;
-                    win_x = attr.x;
-                    win_y = attr.y;
-                    win_w = attr.width;
-                    win_h = attr.height;
+                    drag_state->active_window = child;
+                    drag_state->start_x = e->x_root;
+                    drag_state->start_y = e->y_root;
+                    drag_state->win_x = attr.x;
+                    drag_state->win_y = attr.y;
+                    drag_state->win_w = attr.width;
+                    drag_state->win_h = attr.height;
 
                     if(tiling_enabled) {
                         if((e->state & Mod1Mask) && e->button == Button1) {
-                            dragging = True;
+                            drag_state->dragging = True;
                         } else if(e->button == Button3) {
-                            resizing = True;
+                            drag_state->resizing = True;
                         }
                     } else {
                         if(e->button == Button1) {
-                            dragging = True;
+                            drag_state->dragging = True;
                         } else if(e->button == Button3) {
-                            resizing = True;
+                            drag_state->resizing = True;
                         }
                     }
+                } else {
+                    drag_state->active_window = None;
                 }
             }
 
@@ -70,9 +117,12 @@ void mocha_handle_event(XEvent event, Window taskbar, Window active_window,
                     char *name = mocha_get_client_name(w);
                     int width = strlen(name) * 8 + 10;
                     if(click_x >= x && click_x < x + width) {
-                        XSetInputFocus(dpy, w, RevertToPointerRoot,
-                                       CurrentTime);
-                        XRaiseWindow(dpy, w);
+                        if (c->is_minimized) {
+                            restore_window(w);
+                        } else {
+                            XSetInputFocus(dpy, w, RevertToPointerRoot, CurrentTime);
+                            XRaiseWindow(dpy, w);
+                        }
                         break;
                     }
                     x += width;
@@ -112,20 +162,21 @@ void mocha_handle_event(XEvent event, Window taskbar, Window active_window,
         }
 
         case ButtonRelease:
-            dragging = resizing = 0;
+            drag_state->dragging = 0;
+            drag_state->resizing = 0;
             break;
 
         case MotionNotify: {
-            if(active_window != None) {
-                int dx = event.xmotion.x_root - start_x;
-                int dy = event.xmotion.y_root - start_y;
+            if(drag_state->active_window != None && is_managed_client(drag_state->active_window)) {
+                int dx = event.xmotion.x_root - drag_state->start_x;
+                int dy = event.xmotion.y_root - drag_state->start_y;
 
-                if(dragging) {
-                    XMoveWindow(dpy, active_window, win_x + dx, win_y + dy);
-                } else if(resizing) {
-                    XResizeWindow(dpy, active_window,
-                                  win_w + dx > 50 ? win_w + dx : 50,
-                                  win_h + dy > 50 ? win_h + dy : 50);
+                if(drag_state->dragging) {
+                    XMoveWindow(dpy, drag_state->active_window, drag_state->win_x + dx, drag_state->win_y + dy);
+                } else if(drag_state->resizing) {
+                    XResizeWindow(dpy, drag_state->active_window,
+                                  drag_state->win_w + dx > 50 ? drag_state->win_w + dx : 50,
+                                  drag_state->win_h + dy > 50 ? drag_state->win_h + dy : 50);
                 }
             }
             break;
@@ -156,30 +207,12 @@ void mocha_handle_event(XEvent event, Window taskbar, Window active_window,
                 mocha_launch_menu();
             } else if((event.xkey.state & Mod1Mask) && keysym == XK_f &&
                       mouse_win != None && mouse_win != PointerRoot) {
-                ClientState *state = mocha_get_client_state(mouse_win);
-                int border = BORDER_WIDTH;
-                if(state->is_fullscreen) {
-                    XMoveResizeWindow(dpy, mouse_win, state->saved_x,
-                                      state->saved_y, state->saved_w,
-                                      state->saved_h);
-                    state->is_fullscreen = False;
-                } else {
-                    XWindowAttributes attr;
-                    XGetWindowAttributes(dpy, mouse_win, &attr);
-                    state->saved_x = attr.x;
-                    state->saved_y = attr.y;
-                    state->saved_w = attr.width;
-                    state->saved_h = attr.height;
-                    int screen_w = DisplayWidth(dpy, screen);
-                    int screen_h = DisplayHeight(dpy, screen);
-                    XMoveResizeWindow(dpy, mouse_win, 0, 0, screen_w - 2 * border,
-                                      screen_h - 2 * border);
-                    state->is_fullscreen = True;
-                }
-                update_window_borders(mouse_win);
+                toggle_maximize_window(mouse_win);
             } else if((event.xkey.state & Mod1Mask) && keysym == XK_x &&
                       mouse_win != None && mouse_win != PointerRoot) {
                 XDestroyWindow(dpy, mouse_win);
+            } else if((event.xkey.state & Mod1Mask) && keysym == XK_m && mouse_win != None && mouse_win != PointerRoot) {
+                minimize_window(mouse_win);
             }
             break;
         }

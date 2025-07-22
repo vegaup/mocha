@@ -72,14 +72,14 @@ int parse_config(const char *filename, struct Config *cfg) {
                     cfg->num_keybinds++;
                 }
             } else if(strcmp(current_block, "features") == 0) {
-                if(strcmp(k, "tiling") == 0) cfg->tiling_enabled = (strcmp(v, "true") == 0 || strcmp(v, "1") == 0);
+                if(strcmp(k, "tiling") == 0) cfg->tiling_enabled = (strcmp(v, "true") == 0 || strcmp(v, "1") == 0) ? 1 : 0;
             } else {
                 if(strcmp(k, "launcher-command") == 0) strncpy(cfg->launcher_cmd, v, MAX_CMD_LEN);
                 else if(strcmp(k, "exec-one") == 0) strncpy(cfg->exec_one, v, MAX_CMD_LEN);
-                else if(strcmp(k, "tiling") == 0) cfg->tiling_enabled = (strcmp(v, "true") == 0 || strcmp(v, "1") == 0);
+                else if(strcmp(k, "tiling") == 0) cfg->tiling_enabled = (strcmp(v, "true") == 0 || strcmp(v, "1") == 0) ? 1 : 0;
             }
         }
     }
     fclose(f);
     return 0;
-} 
+}

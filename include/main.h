@@ -12,7 +12,8 @@ extern Display *dpy;
 /* Display's root */
 extern Window root;
 /* Colors */
-extern unsigned long border_color, focus_color, panel_color, foreground_color, accent_color;
+extern unsigned long border_color, focus_color, panel_color, foreground_color,
+    accent_color;
 
 void grabKey(KeySym sym, unsigned int mod);
 void panic(char *msg);
