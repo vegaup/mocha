@@ -2,7 +2,7 @@ CC = clang
 CFLAGS = -Iinclude -Wall -Wextra -std=c17 -Wno-unused-variable
 LDFLAGS = -lX11
 SRC := $(shell find src -name '*.c')
-OUT = mocha-wm
+OUT = mocha-shell
 
 all: build
 

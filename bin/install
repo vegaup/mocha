@@ -37,7 +37,7 @@ install_mocha () {
   make -j"$(nproc)"
 
   log "Installing binary"
-  sudo mv mocha-wm /usr/local/bin/mocha
+  sudo mv mocha-shell /usr/local/bin/mocha-shell
   log "Creating desktop entry..."
   sudo mv mocha.desktop /usr/share/xsessions/mocha.desktop
   log "Writing default config..."
