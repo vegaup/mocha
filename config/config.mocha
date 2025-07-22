@@ -1,0 +1,2 @@
+launcher-command = "rofi -show drun"
+exec-once = "echo 'hi'"

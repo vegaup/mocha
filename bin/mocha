@@ -1,0 +1,14 @@
+#!/bin/sh
+
+set -e
+
+make build
+
+MOCHA="./mocha-wm"
+
+if [ ! -f "$MOCHA" ]; then
+    echo "Error: $MOCHA not found"
+    exit 1
+fi
+
+startx ./xinitrc -- :100

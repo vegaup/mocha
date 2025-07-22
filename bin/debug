@@ -1,0 +1,32 @@
+#!/bin/sh
+
+set -e
+
+make build
+
+MOCHA="./mocha-wm"
+
+if [ ! -f "$MOCHA" ]; then
+    echo "Error: $MOCHA not found"
+    exit 1
+fi
+
+Xephyr :1 -screen 1920x1080 &
+XPID=$!
+
+echo "Waiting for Xephyr to be ready..."
+for i in $(seq 1 50); do
+    if xdpyinfo -display :1 >/dev/null 2>&1; then
+        echo "Xephyr is ready!"
+        break
+    fi
+    sleep 0.1
+done
+
+if ! xdpyinfo -display :1 >/dev/null 2>&1; then
+    echo "Error: Xephyr failed to start"
+    kill $XPID
+    exit 1
+fi
+
+DISPLAY=:1 "$MOCHA" --config /home/tristan/Projects/Mocha/config.mocha

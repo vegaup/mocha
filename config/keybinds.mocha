@@ -1,0 +1,7 @@
+keybinds {
+  Alt+q = "ghostty"
+  Alt+c = "chromium"
+  Alt+z = "@Mocha-Action:launcher"
+  Alt+f = "@Mocha-Action:fullscreen"
+  Alt+x = "@Mocha-Action:close"
+}
