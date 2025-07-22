@@ -5,13 +5,14 @@ set -e
 make build
 
 MOCHA="./mocha-wm"
+RESOLUTION="2560x1440"
 
 if [ ! -f "$MOCHA" ]; then
     echo "Error: $MOCHA not found"
     exit 1
 fi
 
-Xephyr :1 -screen 1920x1080 &
+Xephyr :1 -screen "$RESOLUTION" &
 XPID=$!
 
 echo "Waiting for Xephyr to be ready..."

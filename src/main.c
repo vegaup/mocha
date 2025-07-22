@@ -22,7 +22,7 @@ Colormap colormap;
 int screen;
 unsigned long border_color, focus_color, panel_color, foreground_color, accent_color;
 
-int main(int argc, char **argv) {
+int main(void) {
     const char *home = getenv("HOME");
     if (!home) home = getpwuid(getuid())->pw_dir;
     char config_dir[256];
