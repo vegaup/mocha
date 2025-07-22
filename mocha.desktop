@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Mocha
+Comment=Very cool window manager
+Exec=/usr/local/bin/mocha-wm
+Type=Application
+X-LightDM-DesktopName=Mocha
+DesktopNames=Mocha
+
