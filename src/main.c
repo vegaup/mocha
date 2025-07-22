@@ -29,10 +29,10 @@ int main(int argc, char **argv) {
     snprintf(config_dir, sizeof(config_dir), "%s/.config/mocha", home);
 
     char path_config[300], path_theme[300], path_keybinds[300], path_features[300];
-    snprintf(path_config, sizeof(path_config), "%s/config", config_dir);
-    snprintf(path_theme, sizeof(path_theme), "%s/theme", config_dir);
-    snprintf(path_keybinds, sizeof(path_keybinds), "%s/keybinds", config_dir);
-    snprintf(path_features, sizeof(path_features), "%s/features", config_dir);
+    snprintf(path_config, sizeof(path_config), "%s/config.mconf", config_dir);
+    snprintf(path_theme, sizeof(path_theme), "%s/theme.mconf", config_dir);
+    snprintf(path_keybinds, sizeof(path_keybinds), "%s/keybinds.mconf", config_dir);
+    snprintf(path_features, sizeof(path_features), "%s/features.mconf", config_dir);
 
     mocha_log("Mocha v1.0 starting...");
 
