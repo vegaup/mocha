@@ -25,8 +25,11 @@ struct Config {
     int num_keybinds;
     char launcher_cmd[MAX_CMD_LEN];
     char exec_one[MAX_CMD_LEN];
-    int tiling_enabled; // 1 = enabled, 0 = disabled
+    int tiling_enabled;
+    int animations_enabled;
 };
+
+extern struct Config config;
 
 int parse_config(const char *filename, struct Config *cfg);
 

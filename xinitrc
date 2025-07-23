@@ -1,1 +1,1 @@
-exec ./mocha-wm
+exec ./mocha-shell

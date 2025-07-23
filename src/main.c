@@ -2,6 +2,7 @@
 
 #include <X11/cursorfont.h>
 #include <X11/keysym.h>
+#include <X11/XF86keysym.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,6 +15,8 @@
 #include "ui/toast.h"
 #include "util/client.h"
 #include "util/config.h"
+
+struct Config config = {0};
 
 Display *dpy;
 Window root;
@@ -48,14 +51,10 @@ int main(void) {
     root = RootWindow(dpy, screen);
     colormap = DefaultColormap(dpy, screen);
 
-    struct Config config = {0};
-    config.tiling_enabled = 0;
     parse_config(path_config, &config);    // general/top-level
     parse_config(path_theme, &config);     // colors
     parse_config(path_keybinds, &config);  // keybinds
     parse_config(path_features, &config);  // features
-
-    mocha_log("Final tiling_enabled value: %d", config.tiling_enabled);
 
     XColor border_xcolor, focus_xcolor, panel_xcolor, foreground_xcolor, accent_xcolor;
     if(config.colors.border[0]) XParseColor(dpy, colormap, config.colors.border, &border_xcolor);
@@ -78,7 +77,7 @@ int main(void) {
 
     if(config.exec_one[0]) system(config.exec_one);
 
-    int taskbar_height = 30;
+    int taskbar_height = 40;
     XSetWindowAttributes taskbar_attrs;
     taskbar_attrs.background_pixel = panel_color;
     Window taskbar =
@@ -111,6 +110,12 @@ int main(void) {
              GrabModeAsync, GrabModeAsync);
     XGrabKey(dpy, XKeysymToKeycode(dpy, XK_c), Mod1Mask, root, True,
              GrabModeAsync, GrabModeAsync);
+    XGrabKey(dpy, XKeysymToKeycode(dpy, XF86XK_AudioRaiseVolume), 0, root, True,
+             GrabModeAsync, GrabModeAsync);
+    XGrabKey(dpy, XKeysymToKeycode(dpy, XF86XK_AudioLowerVolume), 0, root, True,
+             GrabModeAsync, GrabModeAsync);
+    XGrabKey(dpy, XKeysymToKeycode(dpy, XF86XK_AudioMute), 0, root, True,
+             GrabModeAsync, GrabModeAsync);
 
     Window active_window = 0;
     int dragging = 0, resizing = 0;
@@ -133,6 +138,7 @@ int main(void) {
     XEvent event;
     for(;;) {
         cleanup_toasts();
+        animate_toasts();
         XNextEvent(dpy, &event);
 
         mocha_handle_event(event, taskbar, &drag_state, taskbar_height, config.tiling_enabled);

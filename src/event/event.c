@@ -1,6 +1,11 @@
 #include "event/event.h"
 
 #include <X11/Xlib.h>
+#include <X11/keysym.h>
+#include <X11/XF86keysym.h>
+#include <stdio.h>
+#include <string.h>
+#include <X11/Xft/Xft.h>
 
 #include "event/event.h"
 #include "features/launcher.h"
@@ -28,7 +33,7 @@ static void restore_window(Window w) {
 }
 static void toggle_maximize_window(Window w) {
     ClientState *state = mocha_get_client_state(w);
-    int border = BORDER_WIDTH;
+    int border = get_border_width();
     if(state->is_fullscreen) {
         XMoveResizeWindow(dpy, w, state->saved_x, state->saved_y, state->saved_w, state->saved_h);
         state->is_fullscreen = 0;
@@ -65,6 +70,27 @@ void update_window_borders(Window focused) {
         }
     }
     mocha_for_each_client_end
+}
+
+static void show_volume_toast() {
+    char buf[128];
+    if (run_command("amixer get Master | grep -o '[0-9]*%' | head -1", buf, sizeof(buf)) == 0 && strlen(buf) > 0) {
+        char msg[64];
+        snprintf(msg, sizeof(msg), "Volume: %s", buf);
+        size_t len = strlen(msg);
+        if (len > 0 && msg[len-1] == '\n') msg[len-1] = '\0';
+        show_toast(msg);
+        return;
+    }
+    if (run_command("pactl get-sink-volume @DEFAULT_SINK@ | grep -o '[0-9]*%' | head -1", buf, sizeof(buf)) == 0 && strlen(buf) > 0) {
+        char msg[64];
+        snprintf(msg, sizeof(msg), "Volume: %s", buf);
+        size_t len = strlen(msg);
+        if (len > 0 && msg[len-1] == '\n') msg[len-1] = '\0';
+        show_toast(msg);
+        return;
+    }
+    show_toast("Volume: ?");
 }
 
 void mocha_handle_event(XEvent event, Window taskbar, struct DragState *drag_state,
@@ -187,7 +213,6 @@ void mocha_handle_event(XEvent event, Window taskbar, struct DragState *drag_sta
             Window focused;
             int revert;
             XGetInputFocus(dpy, &focused, &revert);
-
             Window mouse_win = None;
             int rx, ry, wx, wy;
             unsigned int mask;
@@ -196,7 +221,6 @@ void mocha_handle_event(XEvent event, Window taskbar, struct DragState *drag_sta
             } else {
                 mouse_win = focused;
             }
-
             if((event.xkey.state & Mod1Mask) && keysym == XK_0) {
                 mocha_shutdown();
             } else if((event.xkey.state & Mod1Mask) && keysym == XK_q) {
@@ -205,14 +229,21 @@ void mocha_handle_event(XEvent event, Window taskbar, struct DragState *drag_sta
                 system("chromium &");
             } else if((event.xkey.state & Mod1Mask) && keysym == XK_z) {
                 mocha_launch_menu();
-            } else if((event.xkey.state & Mod1Mask) && keysym == XK_f &&
-                      mouse_win != None && mouse_win != PointerRoot) {
+            } else if((event.xkey.state & Mod1Mask) && keysym == XK_f && mouse_win != None && mouse_win != PointerRoot) {
                 toggle_maximize_window(mouse_win);
-            } else if((event.xkey.state & Mod1Mask) && keysym == XK_x &&
-                      mouse_win != None && mouse_win != PointerRoot) {
+            } else if((event.xkey.state & Mod1Mask) && keysym == XK_x && mouse_win != None && mouse_win != PointerRoot) {
                 XDestroyWindow(dpy, mouse_win);
             } else if((event.xkey.state & Mod1Mask) && keysym == XK_m && mouse_win != None && mouse_win != PointerRoot) {
                 minimize_window(mouse_win);
+            } else if(keysym == XF86XK_AudioRaiseVolume) {
+                system("amixer set Master 5%+ || pactl set-sink-volume @DEFAULT_SINK@ +5% > /dev/null");
+                show_volume_toast();
+            } else if(keysym == XF86XK_AudioLowerVolume) {
+                system("amixer set Master 5%- || pactl set-sink-volume @DEFAULT_SINK@ -5% > /dev/null");
+                show_volume_toast();
+            } else if(keysym == XF86XK_AudioMute) {
+                system("amixer set Master toggle || pactl set-sink-mute @DEFAULT_SINK@ toggle > /dev/null");
+                show_volume_toast();
             }
             break;
         }
@@ -220,7 +251,7 @@ void mocha_handle_event(XEvent event, Window taskbar, struct DragState *drag_sta
         case MapRequest: {
             XMapRequestEvent *e = &event.xmaprequest;
             mocha_add_managed_client(e->window);
-            XSetWindowBorderWidth(dpy, e->window, BORDER_WIDTH);
+            XSetWindowBorderWidth(dpy, e->window, get_border_width());
             XSetWindowBorder(dpy, e->window, border_color);
             if(tiling_enabled) mocha_tile_clients(taskbar_height);
             XMapWindow(dpy, e->window);
@@ -236,7 +267,7 @@ void mocha_handle_event(XEvent event, Window taskbar, struct DragState *drag_sta
             changes.y = e->y;
             changes.width = e->width;
             changes.height = e->height;
-            changes.border_width = BORDER_WIDTH;
+            changes.border_width = get_border_width();
             changes.sibling = e->above;
             changes.stack_mode = e->detail;
             XConfigureWindow(dpy, e->window, e->value_mask | CWBorderWidth,
@@ -255,18 +286,69 @@ void mocha_handle_event(XEvent event, Window taskbar, struct DragState *drag_sta
             if(event.xexpose.window == taskbar) {
                 GC gc = DefaultGC(dpy, screen);
 
+                int btn_x = 5;
+                int btn_y = 5;
+                int btn_w = 140;
+                int btn_h = 32;
+                int btn_label_x = btn_x + 20;
+                int btn_label_y = btn_y + 22;
+
                 XSetForeground(dpy, gc, panel_color);
                 XFillRectangle(dpy, taskbar, gc, 0, 0,
                                DisplayWidth(dpy, screen), taskbar_height);
 
-                int btn_x = 5, btn_y = 3, btn_w = 80, btn_h = 24;
                 XSetForeground(dpy, gc, foreground_color);
                 XFillRectangle(dpy, taskbar, gc, btn_x, btn_y, btn_w, btn_h);
 
+                XftDraw *draw = XftDrawCreate(dpy, taskbar, DefaultVisual(dpy, screen), DefaultColormap(dpy, screen));
+                if (!draw) {
+                    fprintf(stderr, "XftDrawCreate failed\n");
+                    return;
+                }
+                int font_size = 16;
+                char font_pattern[128];
+                snprintf(font_pattern, sizeof(font_pattern), "DejaVuSansMono:size=%d", font_size);
+                XftFont *font = XftFontOpenName(dpy, screen, font_pattern);
+                if (!font) {
+                    fprintf(stderr, "XftFontOpenName failed for '%s', trying 'sans'\n", font_pattern);
+                    snprintf(font_pattern, sizeof(font_pattern), "sans:size=%d", font_size);
+                    font = XftFontOpenName(dpy, screen, font_pattern);
+                }
+                if (!font) {
+                    fprintf(stderr, "XftFontOpen failed for both 'DejaVu Sans Mono' and 'sans'\n");
+                    XftDrawDestroy(draw);
+                    return;
+                }
+                XftColor xft_panel_color, xft_focus_color;
+                XRenderColor render_panel = {
+                    .red   = ((panel_color >> 16) & 0xFF) * 257,
+                    .green = ((panel_color >> 8) & 0xFF) * 257,
+                    .blue  = (panel_color & 0xFF) * 257,
+                    .alpha = 0xFFFF
+                };
+                XRenderColor render_focus = {
+                    .red   = ((focus_color >> 16) & 0xFF) * 257,
+                    .green = ((focus_color >> 8) & 0xFF) * 257,
+                    .blue  = (focus_color & 0xFF) * 257,
+                    .alpha = 0xFFFF
+                };
+                if (!XftColorAllocValue(dpy, DefaultVisual(dpy, screen), DefaultColormap(dpy, screen), &render_panel, &xft_panel_color)) {
+                    fprintf(stderr, "XftColorAllocValue (panel) failed, using white\n");
+                    xft_panel_color.color.red = 0xFFFF;
+                    xft_panel_color.color.green = 0xFFFF;
+                    xft_panel_color.color.blue = 0xFFFF;
+                    xft_panel_color.color.alpha = 0xFFFF;
+                }
+                if (!XftColorAllocValue(dpy, DefaultVisual(dpy, screen), DefaultColormap(dpy, screen), &render_focus, &xft_focus_color)) {
+                    fprintf(stderr, "XftColorAllocValue (focus) failed, using white\n");
+                    xft_focus_color.color.red = 0xFFFF;
+                    xft_focus_color.color.green = 0xFFFF;
+                    xft_focus_color.color.blue = 0xFFFF;
+                    xft_focus_color.color.alpha = 0xFFFF;
+                }
+
                 char *btn_label = "Launcher";
-                XSetForeground(dpy, gc, panel_color);
-                XDrawString(dpy, taskbar, gc, btn_x + 10, btn_y + 16, btn_label,
-                            strlen(btn_label));
+                XftDrawStringUtf8(draw, &xft_panel_color, font, btn_label_x, btn_label_y, (FcChar8 *)btn_label, strlen(btn_label));
 
                 int x = btn_x + btn_w + 10;
                 ClientState *c;
@@ -274,24 +356,56 @@ void mocha_handle_event(XEvent event, Window taskbar, struct DragState *drag_sta
                 mocha_for_each_client(c, w) {
                     char *name = mocha_get_client_name(w);
                     if(name) {
-                        XSetForeground(dpy, gc, focus_color);
-                        XDrawString(dpy, taskbar, gc, x, 20, name,
-                                    strlen(name));
+                        XftDrawStringUtf8(draw, &xft_focus_color, font, x, btn_label_y + 4, (FcChar8 *)name, strlen(name));
                         x += strlen(name) * 8 + 10;
                     }
                 }
                 mocha_for_each_client_end
+                XftFontClose(dpy, font);
+                XftDrawDestroy(draw);
             } else {
                 Toast *t = toasts;
                 XExposeEvent *e = &event.xexpose;
 
                 while(t) {
                     if(t->win == e->window) {
-                        GC gc = XCreateGC(dpy, t->win, 0, NULL);
-                        XSetForeground(dpy, gc, foreground_color);
-                        XDrawString(dpy, t->win, gc, 10, 30, t->message,
-                                    strlen(t->message));
-                        XFreeGC(dpy, gc);
+                        XftDraw *draw = XftDrawCreate(dpy, t->win, DefaultVisual(dpy, screen), DefaultColormap(dpy, screen));
+                        if (!draw) {
+                            fprintf(stderr, "XftDrawCreate (toast) failed\n");
+                            return;
+                        }
+                        int font_size = 16;
+                        char font_pattern[128];
+                        snprintf(font_pattern, sizeof(font_pattern), "DejaVuSansMono:size=%d", font_size);
+                        XftFont *font = XftFontOpenName(dpy, screen, font_pattern);
+                        if (!font) {
+                            fprintf(stderr, "XftFontOpenName (toast) failed for '%s', trying 'sans'\n", font_pattern);
+                            snprintf(font_pattern, sizeof(font_pattern), "sans:size=%d", font_size);
+                            font = XftFontOpenName(dpy, screen, font_pattern);
+                        }
+                        if (!font) {
+                            fprintf(stderr, "XftFontOpen (toast) failed for both 'DejaVu Sans Mono' and 'sans'\n");
+                            XftDrawDestroy(draw);
+                            return;
+                        }
+                        XftColor xft_fg;
+                        XRenderColor render_fg = {
+                            .red   = ((foreground_color >> 16) & 0xFF) * 257,
+                            .green = ((foreground_color >> 8) & 0xFF) * 257,
+                            .blue  = (foreground_color & 0xFF) * 257,
+                            .alpha = 0xFFFF
+                        };
+                        if (!XftColorAllocValue(dpy, DefaultVisual(dpy, screen), DefaultColormap(dpy, screen), &render_fg, &xft_fg)) {
+                            fprintf(stderr, "XftColorAllocValue (toast fg) failed, using white\n");
+                            xft_fg.color.red = 0xFFFF;
+                            xft_fg.color.green = 0xFFFF;
+                            xft_fg.color.blue = 0xFFFF;
+                            xft_fg.color.alpha = 0xFFFF;
+                        }
+                        int y_offset = 30;
+                        XftDrawStringUtf8(draw, &xft_fg, font, 10, y_offset, (FcChar8 *)t->message, strlen(t->message));
+                        XftFontClose(dpy, font);
+                        XftDrawDestroy(draw);
                         break;
                     }
                     t = t->next;

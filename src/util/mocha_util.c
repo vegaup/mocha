@@ -1,6 +1,9 @@
+#define _GNU_SOURCE
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 
 #include "main.h"
 #include "ui/toast.h"
@@ -143,6 +146,18 @@ int handleXError(Display *_, XErrorEvent *error) {
             break;
     }
 
+    return 0;
+}
+
+/**
+ * Util to run a shell command and capture its output as a string
+ */
+int run_command(const char *cmd, char *buf, size_t buflen) {
+    FILE *fp = popen(cmd, "r");
+    if (!fp) return -1;
+    size_t n = fread(buf, 1, buflen - 1, fp);
+    buf[n] = '\0';
+    pclose(fp);
     return 0;
 }
 

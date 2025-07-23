@@ -81,14 +81,14 @@ void mocha_tile_clients(int taskbar_height) {
             XMoveResizeWindow(dpy, w,
                 offset_x,
                 offset_y,
-                master_w - 2 * BORDER_WIDTH,
-                usable_h - 2 * BORDER_WIDTH);
+                master_w - 2 * get_border_width(),
+                usable_h - 2 * get_border_width());
         } else {
             XMoveResizeWindow(dpy, w,
                 offset_x + master_w + gap,
                 offset_y + (i - 1) * (stack_h + gap),
-                stack_w - 2 * BORDER_WIDTH,
-                stack_h - 2 * BORDER_WIDTH);
+                stack_w - 2 * get_border_width(),
+                stack_h - 2 * get_border_width());
         }
         i++;
     }

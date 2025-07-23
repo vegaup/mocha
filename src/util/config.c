@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include "main.h"
 
 #define MAX_COLOR_LEN 16
 #define MAX_KEYBIND_LEN 32
@@ -82,4 +83,8 @@ int parse_config(const char *filename, struct Config *cfg) {
     }
     fclose(f);
     return 0;
+}
+
+int get_border_width() {
+    return 5;
 }

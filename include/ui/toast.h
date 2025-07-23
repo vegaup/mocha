@@ -15,13 +15,17 @@
 #define MAX_TOASTS 5
 #define TOAST_WIDTH 300
 #define TOAST_HEIGHT 50
-#define TOAST_PADDING 10
-#define TOAST_TIMEOUT 5  // seconds
+#define TOAST_PADDING 5
+#define TOAST_TIMEOUT 2  // seconds
 
 typedef struct Toast {
     Window win;
     char message[256];
     time_t created_at;
+    int current_x;
+    int target_x;
+    int velocity;
+    int alpha;
     struct Toast *next;
 } Toast;
 
@@ -30,8 +34,11 @@ extern Display *dpy;
 extern Window root;
 extern Colormap colormap;
 extern int screen;
+extern Toast *status_toast_ptr;
 
 void cleanup_toasts();
 void show_toast(const char *message);
+void animate_toasts();
+void status_toast(const char *message);
 
 #endif  // TOAST_H
