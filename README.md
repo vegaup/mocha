@@ -2,7 +2,7 @@
 
 # Install
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Thoq-jar/Mocha/refs/heads/main/bin/install | bash
+curl -fsSL https://raw.githubusercontent.com/vegaup/mocha/refs/heads/main/bin/install | bash
 ```
 
 TODO: Write readme
