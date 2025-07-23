@@ -1,3 +1,4 @@
+#include "../util/config.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -9,26 +10,6 @@
 #define MAX_CMD_LEN 256
 #define MAX_BINDS 32
 
-struct ConfigColors {
-    char border[MAX_COLOR_LEN];
-    char focus[MAX_COLOR_LEN];
-    char panel[MAX_COLOR_LEN];
-};
-
-struct ConfigKeybind {
-    char key[MAX_KEYBIND_LEN];
-    char action[MAX_CMD_LEN];
-};
-
-struct Config {
-    struct ConfigColors colors;
-    struct ConfigKeybind keybinds[MAX_BINDS];
-    int num_keybinds;
-    char launcher_cmd[MAX_CMD_LEN];
-    char exec_one[MAX_CMD_LEN];
-    int tiling_enabled;
-};
-
 static char *trim(char *str) {
     while(isspace(*str)) str++;
     char *end = str + strlen(str) - 1;
@@ -38,7 +19,10 @@ static char *trim(char *str) {
 
 int parse_config(const char *filename, struct Config *cfg) {
     FILE *f = fopen(filename, "r");
-    if(!f) return -1;
+    if(!f) {
+        mocha_error(stderr, "Could not open config file: %s", filename);
+        return -1;
+    }
     char line[512];
     char current_block[32] = "";
     while(fgets(line, sizeof(line), f)) {
@@ -73,11 +57,13 @@ int parse_config(const char *filename, struct Config *cfg) {
                     cfg->num_keybinds++;
                 }
             } else if(strcmp(current_block, "features") == 0) {
-                if(strcmp(k, "tiling") == 0) cfg->tiling_enabled = (strcmp(v, "true") == 0 || strcmp(v, "1") == 0) ? 1 : 0;
+                if(strcmp(k, "tiling") == 0) cfg->features.tiling_enabled = (strcmp(v, "true") == 0 || strcmp(v, "1") == 0) ? 1 : 0;
+                else if(strcmp(k, "quotes") == 0) cfg->features.quotes_enabled = (strcmp(v, "true") == 0 || strcmp(v, "1") == 0) ? 1 : 0;
             } else {
                 if(strcmp(k, "launcher-command") == 0) strncpy(cfg->launcher_cmd, v, MAX_CMD_LEN);
                 else if(strcmp(k, "exec-one") == 0) strncpy(cfg->exec_one, v, MAX_CMD_LEN);
-                else if(strcmp(k, "tiling") == 0) cfg->tiling_enabled = (strcmp(v, "true") == 0 || strcmp(v, "1") == 0) ? 1 : 0;
+                else if(strcmp(k, "tiling") == 0) cfg->features.tiling_enabled = (strcmp(v, "true") == 0 || strcmp(v, "1") == 0) ? 1 : 0;
+                else if(strcmp(k, "quotes") == 0) cfg->features.quotes_enabled = (strcmp(v, "true") == 0 || strcmp(v, "1") == 0) ? 1 : 0;
             }
         }
     }

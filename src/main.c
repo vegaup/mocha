@@ -26,36 +26,42 @@ int screen;
 unsigned long border_color, focus_color, panel_color, foreground_color, accent_color;
 
 int main(void) {
+    mocha_log("Mocha v1.0 starting...");
+
+    mocha_log("Loading config...");
     const char *home = getenv("HOME");
     if (!home) home = getpwuid(getuid())->pw_dir;
     char config_dir[256];
     snprintf(config_dir, sizeof(config_dir), "%s/.config/mocha", home);
 
-    char path_config[300], path_theme[300], path_keybinds[300], path_features[300];
+    char path_config[300], path_theme[300], path_keybinds[300], path_features[300], path_quotes[300];
     snprintf(path_config, sizeof(path_config), "%s/config.mconf", config_dir);
     snprintf(path_theme, sizeof(path_theme), "%s/theme.mconf", config_dir);
     snprintf(path_keybinds, sizeof(path_keybinds), "%s/keybinds.mconf", config_dir);
     snprintf(path_features, sizeof(path_features), "%s/features.mconf", config_dir);
+    snprintf(path_quotes, sizeof(path_quotes), "%s/quotes.txt", config_dir);
+    load_quotes(path_quotes);
 
-    mocha_log("Mocha v1.0 starting...");
-
+    mocha_log("Opening display...");
     char *display = getenv("DISPLAY");
     if(!display) panic("DISPLAY environment variable not set");
 
     dpy = XOpenDisplay(NULL);
     if(!dpy) panic("Unable to open X display");
 
+    mocha_log("Setting up error handler...");
     XSetErrorHandler(handleXError);
 
     screen = DefaultScreen(dpy);
     root = RootWindow(dpy, screen);
     colormap = DefaultColormap(dpy, screen);
 
-    parse_config(path_config, &config);    // general/top-level
-    parse_config(path_theme, &config);     // colors
-    parse_config(path_keybinds, &config);  // keybinds
-    parse_config(path_features, &config);  // features
+    parse_config(path_config, &config);
+    parse_config(path_theme, &config);
+    parse_config(path_keybinds, &config);
+    parse_config(path_features, &config);
 
+    mocha_log("Setting up colors...");
     XColor border_xcolor, focus_xcolor, panel_xcolor, foreground_xcolor, accent_xcolor;
     if(config.colors.border[0]) XParseColor(dpy, colormap, config.colors.border, &border_xcolor);
     else XParseColor(dpy, colormap, "#6f529eff", &border_xcolor);
@@ -75,6 +81,8 @@ int main(void) {
     if(!foreground_color) mocha_log("Warning: foreground_color allocation failed, text may be black");
     XAllocColor(dpy, colormap, &accent_xcolor); accent_color = accent_xcolor.pixel;
 
+    mocha_log("Setting up taskbar...");
+    if (config.features.quotes_enabled) show_quote_window(get_random_quote());
     if(config.exec_one[0]) system(config.exec_one);
 
     int taskbar_height = 40;
@@ -89,15 +97,18 @@ int main(void) {
     XMapWindow(dpy, taskbar);
     XRaiseWindow(dpy, taskbar);
 
+    mocha_log("Setting up cursor...");
     Cursor cursor = XCreateFontCursor(dpy, XC_left_ptr);
     XDefineCursor(dpy, root, cursor);
     XSync(dpy, False);
 
+    mocha_log("Setting up event mask...");
     XSelectInput(dpy, root,
                  SubstructureRedirectMask | SubstructureNotifyMask |
                      ButtonPressMask | ButtonReleaseMask | PointerMotionMask |
                      EnterWindowMask | LeaveWindowMask);
 
+    mocha_log("Setting up keybinds...");
     XGrabKey(dpy, XKeysymToKeycode(dpy, XK_z), Mod1Mask, root, True,
              GrabModeAsync, GrabModeAsync);
     XGrabKey(dpy, XKeysymToKeycode(dpy, XK_0), Mod1Mask, root, True,
@@ -133,6 +144,7 @@ int main(void) {
         fclose(lock);
     }
 
+    mocha_log("Mocha v1.0 started!");
     struct DragState drag_state = {0};
 
     XEvent event;
@@ -141,7 +153,7 @@ int main(void) {
         animate_toasts();
         XNextEvent(dpy, &event);
 
-        mocha_handle_event(event, taskbar, &drag_state, taskbar_height, config.tiling_enabled);
+        mocha_handle_event(event, taskbar, &drag_state, taskbar_height, config.features.tiling_enabled);
     }
 
     XCloseDisplay(dpy);

@@ -1,7 +1,6 @@
 colors {
-  foreground =rgb(18, 18, 18)
   border = #9467c1
   focus = #7e19e0
-  panel = #999999
+  panel = #222222
   acent = #7e19e0
 }

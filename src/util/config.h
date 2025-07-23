@@ -19,14 +19,18 @@ struct ConfigKeybind {
     char action[MAX_CMD_LEN];
 };
 
+struct ConfigFeatures {
+    int tiling_enabled;
+    int quotes_enabled;
+};
+
 struct Config {
     struct ConfigColors colors;
     struct ConfigKeybind keybinds[MAX_BINDS];
+    struct ConfigFeatures features;
     int num_keybinds;
     char launcher_cmd[MAX_CMD_LEN];
     char exec_one[MAX_CMD_LEN];
-    int tiling_enabled;
-    int animations_enabled;
 };
 
 extern struct Config config;

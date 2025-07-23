@@ -1,3 +1,4 @@
 features {
   tiling = false
+  quotes = true
 }

@@ -12,6 +12,9 @@
 #include "main.h"
 #include "ui/toast.h"
 #include "util/client.h"
+#include "../util/config.h"
+
+extern Window quote_win;
 
 void update_window_borders(Window focused);
 
@@ -297,7 +300,7 @@ void mocha_handle_event(XEvent event, Window taskbar, struct DragState *drag_sta
                 XFillRectangle(dpy, taskbar, gc, 0, 0,
                                DisplayWidth(dpy, screen), taskbar_height);
 
-                XSetForeground(dpy, gc, foreground_color);
+                XSetForeground(dpy, gc, focus_color);
                 XFillRectangle(dpy, taskbar, gc, btn_x, btn_y, btn_w, btn_h);
 
                 XftDraw *draw = XftDrawCreate(dpy, taskbar, DefaultVisual(dpy, screen), DefaultColormap(dpy, screen));
@@ -363,6 +366,8 @@ void mocha_handle_event(XEvent event, Window taskbar, struct DragState *drag_sta
                 mocha_for_each_client_end
                 XftFontClose(dpy, font);
                 XftDrawDestroy(draw);
+            } else if (quote_win && event.xexpose.window == quote_win) {
+                draw_quote_window();
             } else {
                 Toast *t = toasts;
                 XExposeEvent *e = &event.xexpose;
@@ -389,12 +394,7 @@ void mocha_handle_event(XEvent event, Window taskbar, struct DragState *drag_sta
                             return;
                         }
                         XftColor xft_fg;
-                        XRenderColor render_fg = {
-                            .red   = ((foreground_color >> 16) & 0xFF) * 257,
-                            .green = ((foreground_color >> 8) & 0xFF) * 257,
-                            .blue  = (foreground_color & 0xFF) * 257,
-                            .alpha = 0xFFFF
-                        };
+                        XRenderColor render_fg = { .red = 0xFFFF, .green = 0xFFFF, .blue = 0xFFFF, .alpha = 0xFFFF };
                         if (!XftColorAllocValue(dpy, DefaultVisual(dpy, screen), DefaultColormap(dpy, screen), &render_fg, &xft_fg)) {
                             fprintf(stderr, "XftColorAllocValue (toast fg) failed, using white\n");
                             xft_fg.color.red = 0xFFFF;

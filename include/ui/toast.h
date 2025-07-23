@@ -35,10 +35,17 @@ extern Window root;
 extern Colormap colormap;
 extern int screen;
 extern Toast *status_toast_ptr;
+extern Window quote_win;
 
 void cleanup_toasts();
 void show_toast(const char *message);
 void animate_toasts();
 void status_toast(const char *message);
+void show_quote_window(const char *quote);
+void update_quote_window(const char *quote);
+void destroy_quote_window();
+void load_quotes(const char *filename);
+const char *get_random_quote();
+void draw_quote_window();
 
 #endif  // TOAST_H

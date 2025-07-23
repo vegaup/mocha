@@ -4,8 +4,111 @@
 #include <X11/Xatom.h>
 #include "../util/config.h"
 #include <math.h>
+#include <X11/Xft/Xft.h>
+#include <time.h>
+
+#define MAX_QUOTES 64
+#define MAX_QUOTE_LEN 256
+Window quote_win = 0;
+
+static char quotes[MAX_QUOTES][MAX_QUOTE_LEN];
+static char current_quote[MAX_QUOTE_LEN] = "";
+static int num_quotes = 0;
+static int quote_width = 1440;
 
 Toast *toasts = NULL;
+
+void load_quotes(const char *filename) {
+    num_quotes = 0;
+    FILE *f = fopen(filename, "r");
+    if (!f) return;
+    char buf[MAX_QUOTE_LEN];
+    while (fgets(buf, sizeof(buf), f) && num_quotes < MAX_QUOTES) {
+        size_t len = strlen(buf);
+        if (len > 0 && buf[len-1] == '\n') buf[len-1] = '\0';
+        strncpy(quotes[num_quotes], buf, MAX_QUOTE_LEN-1);
+        quotes[num_quotes][MAX_QUOTE_LEN-1] = '\0';
+        num_quotes++;
+    }
+    fclose(f);
+}
+
+const char *get_random_quote() {
+    if (num_quotes == 0) return "";
+    srand(time(NULL));
+    int idx = rand() % num_quotes;
+    return quotes[idx];
+}
+
+void show_quote_window(const char *quote) {
+    if (quote_win) destroy_quote_window();
+    int w = quote_width;
+    int h = 48;
+    int x = (DisplayWidth(dpy, screen) - w) / 2;
+    int y = DisplayHeight(dpy, screen) - h - 40;
+    XSetWindowAttributes attrs;
+    attrs.override_redirect = True;
+    attrs.background_pixel = None;
+    attrs.border_pixel = None;
+    attrs.event_mask = ExposureMask;
+    quote_win = XCreateWindow(
+        dpy, root, x, y, w, h, 1,
+        DefaultDepth(dpy, screen), CopyFromParent, DefaultVisual(dpy, screen),
+        CWOverrideRedirect | CWBackPixel | CWBorderPixel | CWEventMask, &attrs);
+    XMapWindow(dpy, quote_win);
+    strncpy(current_quote, quote, MAX_QUOTE_LEN-1);
+    current_quote[MAX_QUOTE_LEN-1] = '\0';
+}
+
+void update_quote_window(const char *quote) {
+    if (!quote_win) return;
+    strncpy(current_quote, quote, MAX_QUOTE_LEN-1);
+    current_quote[MAX_QUOTE_LEN-1] = '\0';
+    XClearWindow(dpy, quote_win);
+}
+
+void destroy_quote_window() {
+    if (quote_win) {
+        XDestroyWindow(dpy, quote_win);
+        quote_win = 0;
+    }
+}
+
+void draw_quote_window() {
+    if (!quote_win) return;
+    XftDraw *draw = XftDrawCreate(dpy, quote_win, DefaultVisual(dpy, screen), DefaultColormap(dpy, screen));
+    if (!draw) return;
+    int font_size = 14;
+    char font_pattern[128];
+    snprintf(font_pattern, sizeof(font_pattern), "DejaVuSansMono:size=%d", font_size);
+    XftFont *font = XftFontOpenName(dpy, screen, font_pattern);
+    if (!font) {
+        snprintf(font_pattern, sizeof(font_pattern), "sans:size=%d", font_size);
+        font = XftFontOpenName(dpy, screen, font_pattern);
+    }
+    if (!font) {
+        XftDrawDestroy(draw);
+        return;
+    }
+
+    XftColor xft_fg;
+    XRenderColor render_fg = { .red = 0xFFFF, .green = 0xFFFF, .blue = 0xFFFF, .alpha = 0xFFFF };
+    if (!XftColorAllocValue(dpy, DefaultVisual(dpy, screen), DefaultColormap(dpy, screen), &render_fg, &xft_fg)) {
+        xft_fg.color.red = 0xFFFF;
+        xft_fg.color.green = 0xFFFF;
+        xft_fg.color.blue = 0xFFFF;
+        xft_fg.color.alpha = 0xFFFF;
+    }
+    int y_offset = 32;
+    XGlyphInfo extents;
+    XftTextExtentsUtf8(dpy, font, (FcChar8 *)current_quote, strlen(current_quote), &extents);
+    int win_width = quote_width;
+    int x_offset = (win_width - extents.width) / 2;
+    if (x_offset < 0) x_offset = 0;
+    XftDrawStringUtf8(draw, &xft_fg, font, x_offset, y_offset, (FcChar8 *)current_quote, strlen(current_quote));
+    XftFontClose(dpy, font);
+    XftDrawDestroy(draw);
+}
 
 void show_toast(const char *message) {
     int toast_w = TOAST_WIDTH;
