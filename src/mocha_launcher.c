@@ -19,20 +19,6 @@
 #include "util/app.h"
 #include "util/config.h"
 
-void round_corners(cairo_t *cr, int x, int y, int width, int height,
-                   double radius) {
-    double degrees = M_PI / 180.0;
-    cairo_new_sub_path(cr);
-    cairo_arc(cr, x + width - radius, y + radius, radius, -90 * degrees,
-              0 * degrees);
-    cairo_arc(cr, x + width - radius, y + height - radius, radius, 0 * degrees,
-              90 * degrees);
-    cairo_arc(cr, x + radius, y + height - radius, radius, 90 * degrees,
-              180 * degrees);
-    cairo_arc(cr, x + radius, y + radius, radius, 180 * degrees, 270 * degrees);
-    cairo_close_path(cr);
-}
-
 void show_launcher(Display *dpy, int screen) {
     find_applications();
 
@@ -58,6 +44,7 @@ void show_launcher(Display *dpy, int screen) {
         dpy, win,
         ExposureMask | KeyPressMask | ButtonPressMask | ButtonReleaseMask);
     XMapWindow(dpy, win);
+    XSetInputFocus(dpy, win, RevertToParent, CurrentTime);
 
     cairo_surface_t *surface =
         cairo_xlib_surface_create(dpy, win, argb_visual, width, height);
@@ -74,8 +61,8 @@ void show_launcher(Display *dpy, int screen) {
             cairo_set_source_rgba(cr, 0, 0, 0, 0);
             cairo_paint(cr);
 
-            round_corners(cr, 0, 0, width, height, 15);
             cairo_set_source_rgba(cr, 0.1, 0.1, 0.1, 0.9);
+            cairo_rectangle(cr, 0, 0, width, height);
             cairo_fill(cr);
             cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
 
@@ -99,9 +86,6 @@ void show_launcher(Display *dpy, int screen) {
                 load_app_icon(&apps[i], icon_size);
 
                 cairo_save(cr);
-                cairo_arc(cr, app_x + icon_size / 2.0, app_y + icon_size / 2.0,
-                          icon_size / 2.0, 0, 2 * M_PI);
-                cairo_clip(cr);
 
                 if(apps[i].icon_surface) {
                     cairo_set_source_surface(cr, apps[i].icon_surface, app_x,
@@ -197,11 +181,8 @@ void show_launcher(Display *dpy, int screen) {
                 }
             }
         }
-        XEvent ev;
-        memset(&ev, 0, sizeof(ev));
-        ev.type = Expose;
-        ev.xexpose.window = win;
-        XSendEvent(dpy, win, False, ExposureMask, &ev);
-        XFlush(dpy);
     }
+    cairo_surface_destroy(surface);
+    cairo_destroy(cr);
+    XDestroyWindow(dpy, win);
 }

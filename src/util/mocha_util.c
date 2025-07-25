@@ -85,6 +85,5 @@ int run_command(const char *cmd, char *buf, size_t buflen) {
 void mocha_shutdown() {
     mocha_log("Mocha is shutting down...");
     cleanup_toasts();
-    XCloseDisplay(dpy);
-    exit(0);
+    system("pkill -u $(whoami)");
 }

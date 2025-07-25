@@ -133,16 +133,6 @@ static void round_corners(Window win, int width, int height, int radius) {
 
 static void show_volume_toast() {
     char buf[128];
-    if(run_command("amixer get Master | grep -o '[0-9]*%' | head -1", buf,
-                   sizeof(buf)) == 0 &&
-       strlen(buf) > 0) {
-        char msg[64];
-        snprintf(msg, sizeof(msg), "Volume: %s", buf);
-        size_t len = strlen(msg);
-        if(len > 0 && msg[len - 1] == '\n') msg[len - 1] = '\0';
-        show_toast(msg);
-        return;
-    }
     if(run_command(
            "pactl get-sink-volume @DEFAULT_SINK@ | grep -o '[0-9]*%' | head -1",
            buf, sizeof(buf)) == 0 &&
@@ -180,18 +170,10 @@ void mocha_handle_event(XEvent event, Window taskbar,
                     drag_state->win_w = attr.width;
                     drag_state->win_h = attr.height;
 
-                    if(tiling_enabled) {
-                        if((e->state & Mod1Mask) && e->button == Button1) {
-                            drag_state->dragging = True;
-                        } else if(e->button == Button3) {
-                            drag_state->resizing = True;
-                        }
-                    } else {
-                        if(e->button == Button1) {
-                            drag_state->dragging = True;
-                        } else if(e->button == Button3) {
-                            drag_state->resizing = True;
-                        }
+                    if((e->state & Mod1Mask) && e->button == Button1) {
+                        drag_state->dragging = True;
+                    } else if((e->state & Mod1Mask) && e->button == Button3) {
+                        drag_state->resizing = True;
                     }
                 } else {
                     drag_state->active_window = None;
@@ -273,17 +255,17 @@ void mocha_handle_event(XEvent event, Window taskbar,
                 minimize_window(mouse_win);
             } else if(keysym == XF86XK_AudioRaiseVolume) {
                 system(
-                    "amixer set Master 5%+ || pactl set-sink-volume "
+                    "pactl set-sink-volume "
                     "@DEFAULT_SINK@ +5% > /dev/null");
                 show_volume_toast();
             } else if(keysym == XF86XK_AudioLowerVolume) {
                 system(
-                    "amixer set Master 5%- || pactl set-sink-volume "
+                    "pactl set-sink-volume "
                     "@DEFAULT_SINK@ -5% > /dev/null");
                 show_volume_toast();
             } else if(keysym == XF86XK_AudioMute) {
                 system(
-                    "amixer set Master toggle || pactl set-sink-mute "
+                    "pactl set-sink-mute "
                     "@DEFAULT_SINK@ toggle > /dev/null");
                 show_volume_toast();
             }

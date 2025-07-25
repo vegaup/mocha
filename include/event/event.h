@@ -3,12 +3,6 @@
 
 #include <X11/Xlib.h>
 
-extern int dragging, resizing;
-extern int start_x, start_y;
-extern int win_x, win_y, win_w, win_h;
-
-struct DragState;
-
 struct DragState {
     Window active_window;
     int dragging, resizing;
@@ -16,7 +10,8 @@ struct DragState {
     int win_x, win_y, win_w, win_h;
 };
 
-void mocha_handle_event(XEvent event, Window taskbar, struct DragState *drag_state,
-                       int taskbar_height, int tiling_enabled);
+void mocha_handle_event(XEvent event, Window taskbar,
+                        struct DragState *drag_state, int taskbar_height,
+                        int tiling_enabled);
 
 #endif  // EVENT_H

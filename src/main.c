@@ -227,98 +227,33 @@ int main(void) {
     Bool has_render = False;
     int render_event, render_error;
     if(XRenderQueryExtension(dpy, &render_event, &render_error)) {
-        int major, minor;
-        if(XRenderQueryVersion(dpy, &major, &minor)) {
-            has_render = True;
-            mocha_log("Render extension available (version %d.%d)", major,
-                      minor);
-        } else {
-            mocha_log("Render extension version query failed");
-        }
+        has_render = True;
+    }
+
+    Window taskbar;
+    if(has_render) {
+        taskbar =
+            XCreateSimpleWindow(dpy, root, 0, screen_height - taskbar_height,
+                                screen_width, taskbar_height, 0, 0, 0x000000);
     } else {
-        mocha_log(
-            "Render extension not available, Cairo rendering will be limited");
+        taskbar =
+            XCreateSimpleWindow(dpy, root, 0, screen_height - taskbar_height,
+                                screen_width, taskbar_height, 0, 0, 0x000000);
     }
-
-    Bool has_xfixes = False;
-    int xfixes_event, xfixes_error;
-    if(XFixesQueryExtension(dpy, &xfixes_event, &xfixes_error)) {
-        int major, minor;
-        if(XFixesQueryVersion(dpy, &major, &minor)) {
-            has_xfixes = True;
-            mocha_log("XFixes extension available (version %d.%d)", major,
-                      minor);
-        } else {
-            mocha_log("XFixes extension version query failed");
-        }
-    } else {
-        mocha_log(
-            "XFixes extension not available, some features will be disabled");
-    }
-
-    Bool has_shape = False;
-    int shape_event, shape_error;
-    if(XShapeQueryExtension(dpy, &shape_event, &shape_error)) {
-        int major, minor;
-        if(XShapeQueryVersion(dpy, &major, &minor)) {
-            has_shape = True;
-            mocha_log("Shape extension available (version %d.%d)", major,
-                      minor);
-        } else {
-            mocha_log("Shape extension version query failed");
-        }
-    } else {
-        mocha_log(
-            "Shape extension not available, some features will be disabled");
-    }
-
-    XSetWindowAttributes taskbar_attrs;
-    taskbar_attrs.background_pixel = 0;
-    taskbar_attrs.border_pixel = 0;
-    taskbar_attrs.override_redirect = True;
-    taskbar_attrs.colormap = argb_colormap;
-
-    Window taskbar = XCreateWindow(
-        dpy, root, 0, screen_height - taskbar_height, screen_width,
-        taskbar_height, 0, argb_depth, InputOutput, argb_visual,
-        CWBackPixel | CWBorderPixel | CWOverrideRedirect | CWColormap,
-        &taskbar_attrs);
-
-    if(taskbar == None) {
-        mocha_error(stderr, "Failed to create taskbar window, cannot continue");
-        exit(1);
-    }
-
-    Atom window_type = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE", False);
+    XSelectInput(dpy, taskbar,
+                 ExposureMask | ButtonPressMask | ButtonReleaseMask);
+    XMapWindow(dpy, taskbar);
     Atom dock_type = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_DOCK", False);
-    XChangeProperty(dpy, taskbar, window_type, XA_ATOM, 32, PropModeReplace,
-                    (unsigned char *)&dock_type, 1);
-
-    mocha_log("Using transparent window for the dock");
-
+    XChangeProperty(dpy, taskbar,
+                    XInternAtom(dpy, "_NET_WM_WINDOW_TYPE", False), XA_ATOM, 32,
+                    PropModeReplace, (unsigned char *)&dock_type, 1);
     mocha_init_dock();
 
-    XSelectInput(dpy, taskbar, ExposureMask | ButtonPressMask);
-    XMapWindow(dpy, taskbar);
-    XRaiseWindow(dpy, taskbar);
+    mocha_tile_clients(taskbar_height);
 
-    XEvent expose_event;
-    expose_event.type = Expose;
-    expose_event.xexpose.window = taskbar;
-    expose_event.xexpose.x = 0;
-    expose_event.xexpose.y = 0;
-    expose_event.xexpose.width = screen_width;
-    expose_event.xexpose.height = taskbar_height;
-    expose_event.xexpose.count = 0;
-    XSendEvent(dpy, taskbar, False, ExposureMask, &expose_event);
-    XFlush(dpy);
-
-    mocha_log("Setting up cursor...");
     Cursor cursor = XCreateFontCursor(dpy, XC_left_ptr);
     XDefineCursor(dpy, root, cursor);
-    XSync(dpy, False);
 
-    mocha_log("Setting up event mask...");
     XSelectInput(dpy, root,
                  SubstructureRedirectMask | SubstructureNotifyMask |
                      ButtonPressMask | ButtonReleaseMask | PointerMotionMask |
@@ -343,11 +278,6 @@ int main(void) {
              GrabModeAsync, GrabModeAsync);
     XGrabKey(dpy, XKeysymToKeycode(dpy, XF86XK_AudioMute), 0, root, True,
              GrabModeAsync, GrabModeAsync);
-
-    Window active_window = 0;
-    int dragging = 0, resizing = 0;
-    int start_x = 0, start_y = 0;
-    int win_x = 0, win_y = 0, win_w = 0, win_h = 0;
 
     char welcome_lock_path[300];
     snprintf(welcome_lock_path, sizeof(welcome_lock_path),

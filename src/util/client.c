@@ -291,57 +291,39 @@ void mocha_draw_dock(Window dock_win) {
     int icon_size = 28;
     int icon_spacing = 8;
     int dock_padding = 6;
-    int dock_height = icon_size + dock_padding * 2;
+    int dock_height = 60;
 
-    int dock_width = screen_w - 10;
+    int dock_width = screen_w;
 
-    int dock_x = (screen_w - dock_width) / 2;
-    int dock_y = 20;
+    int dock_x = 0;
+    int dock_y = 0;
 
-    double corner_radius = dock_height / 2.0;
-
-    double r = ((accent_color >> 16) & 0xFF) / 255.0;
-    double g = ((accent_color >> 8) & 0xFF) / 255.0;
-    double b = (accent_color & 0xFF) / 255.0;
-
-    cairo_set_source_rgba(cr, r * 0.3, g * 0.3, b * 0.3, 0.7);
-    cairo_set_line_width(cr, 0);
-    cairo_move_to(cr, dock_x + corner_radius, dock_y + dock_height);
-    cairo_arc(cr, dock_x + corner_radius, dock_y + corner_radius, corner_radius,
-              M_PI, 1.5 * M_PI);
-    cairo_arc(cr, dock_x + dock_width - corner_radius, dock_y + corner_radius,
-              corner_radius, 1.5 * M_PI, 2 * M_PI);
-    cairo_arc(cr, dock_x + dock_width - corner_radius,
-              dock_y + dock_height - corner_radius, corner_radius, 0,
-              0.5 * M_PI);
-    cairo_arc(cr, dock_x + corner_radius, dock_y + dock_height - corner_radius,
-              corner_radius, 0.5 * M_PI, M_PI);
-    cairo_close_path(cr);
+    cairo_set_source_rgba(cr, 0.1, 0.1, 0.1, 0.75);
+    cairo_rectangle(cr, dock_x, dock_y, dock_width, dock_height);
     cairo_fill(cr);
 
-    int launcher_x = dock_x + dock_padding;
-    int launcher_y = dock_y + dock_padding;
+    int launcher_icon_size = 32;
+    int launcher_icon_x = dock_x + dock_padding;
+    int launcher_icon_y = dock_y + (dock_height - launcher_icon_size) / 2;
 
-    draw_circular_icon(cr, launcher_x, launcher_y, icon_size, accent_color, "L",
-                       true);
-    dock_icons[0].x = launcher_x;
-    dock_icons[0].y = launcher_y;
+    draw_circular_icon(cr, launcher_icon_x, launcher_icon_y, launcher_icon_size,
+                       0x808080, "L", true);
+    dock_icons[0].x = launcher_icon_x;
+    dock_icons[0].y = launcher_icon_y;
 
-    int app_icons_width = (num_dock_icons - 1) * (icon_size + icon_spacing);
-    int center_start_x = (screen_w - app_icons_width) / 2;
+    int app_icons_width =
+        (num_dock_icons - 1) * (icon_size + icon_spacing) - icon_spacing;
+    int center_start_x =
+        dock_x + (dock_width - app_icons_width) / 2 + launcher_icon_size;
 
     for(int i = 1; i < num_dock_icons; i++) {
         int icon_x = center_start_x + (i - 1) * (icon_size + icon_spacing);
-        int icon_y = dock_y + dock_padding;
+        int icon_y = dock_y + (dock_height - icon_size) / 2;
 
         if(dock_icons[i].app) {
             load_app_icon(dock_icons[i].app, icon_size);
             if(dock_icons[i].app->icon_surface) {
                 cairo_save(cr);
-                cairo_arc(cr, icon_x + icon_size / 2.0,
-                          icon_y + icon_size / 2.0, icon_size / 2.0, 0,
-                          2 * M_PI);
-                cairo_clip(cr);
                 cairo_set_source_surface(cr, dock_icons[i].app->icon_surface,
                                          icon_x, icon_y);
                 cairo_paint(cr);
