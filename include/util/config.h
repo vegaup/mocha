@@ -5,6 +5,7 @@
 #define MAX_KEYBIND_LEN 32
 #define MAX_CMD_LEN 256
 #define MAX_BINDS 32
+#define MAX_PATH_LEN 256
 
 struct ConfigColors {
     char border[MAX_COLOR_LEN];
@@ -12,6 +13,8 @@ struct ConfigColors {
     char panel[MAX_COLOR_LEN];
     char foreground[MAX_COLOR_LEN];
     char accent[MAX_COLOR_LEN];
+    char wallpaper[MAX_PATH_LEN];
+    char wallpaper_mode[32];
 };
 
 struct ConfigKeybind {
@@ -22,6 +25,7 @@ struct ConfigKeybind {
 struct ConfigFeatures {
     int tiling_enabled;
     int quotes_enabled;
+    int border_radius;
 };
 
 struct Config {
@@ -37,4 +41,4 @@ extern struct Config config;
 
 int parse_config(const char *filename, struct Config *cfg);
 
-#endif // MOCHA_CONFIG_H 
+#endif  // MOCHA_CONFIG_H

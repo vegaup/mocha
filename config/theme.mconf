@@ -2,5 +2,10 @@ colors {
   border = #9467c1
   focus = #7e19e0
   panel = #222222
-  acent = #7e19e0
+  accent = #7e19e0
+}
+
+wallpaper {
+  image = "/home/tristan/Pictures/Wallpapers/flow.jpg"
+  mode = "stretch_fit"
 }

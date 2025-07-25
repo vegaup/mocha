@@ -1,8 +1,8 @@
 #define _GNU_SOURCE
 #include <stdarg.h>
 #include <stdbool.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "main.h"
@@ -17,6 +17,7 @@ void mocha_log(const char *fmt, ...) {
     printf("\033[1;30m[ \033[0m\033[1;35mMocha\033[0m\033[1;30m ]\033[0m ");
     vprintf(fmt, args);
     printf("\n");
+    fflush(stdout);
     va_end(args);
 }
 
@@ -56,96 +57,16 @@ void panic(char *msg) {
 }
 
 /**
- * Simple error handling util
+ * Improved X error handler with rate limiting
  */
-int handleXError(Display *_, XErrorEvent *error) {
-    switch(error->error_code) {
-        case BadAccess:
-            mocha_error(
-                stderr,
-                "[%d]=BadAccess: Is another window manager already running?\n",
-                error->error_code);
-            exit(1);  // fatal
-
-        case BadMatch:
-            mocha_error(stderr,
-                        "[%d]=BadMatch: Parameter mismatch. This may cause "
-                        "visual glitches.\n",
-                        error->error_code);
-            break;
-
-        case BadDrawable:
-            mocha_error(
-                stderr,
-                "[%d]=BadDrawable: Invalid drawable. Likely transient.\n",
-                error->error_code);
-            break;
-
-        case BadAlloc:
-            mocha_error(stderr, "[%d]=BadAlloc: Insufficient resources.\n",
-                        error->error_code);
-            break;
-
-        case BadWindow:
-            mocha_error(stderr, "[%d]=BadWindow: Invalid window. Skipping...\n",
-                        error->error_code);
-            break;
-
-        case BadValue:
-            mocha_error(
-                stderr,
-                "[%d]=BadValue: Invalid value passed to X11. Recovering...\n",
-                error->error_code);
-            break;
-
-        case BadAtom:
-            mocha_error(stderr, "[%d]=BadAtom: Invalid atom. Skipping...\n",
-                        error->error_code);
-            break;
-
-        case BadColor:
-            mocha_error(stderr, "[%d]=BadColor: Invalid color. Skipping...\n",
-                        error->error_code);
-            break;
-
-        case BadCursor:
-            mocha_error(stderr, "[%d]=BadCursor: Invalid cursor. Skipping...\n",
-                        error->error_code);
-            break;
-
-        case BadFont:
-            mocha_error(stderr, "[%d]=BadFont: Invalid font. Skipping...\n",
-                        error->error_code);
-            break;
-
-        case BadGC:
-            mocha_error(stderr,
-                        "[%d]=BadGC: Invalid graphics context. Skipping...\n",
-                        error->error_code);
-            break;
-
-        case BadPixmap:
-            mocha_error(stderr, "[%d]=BadPixmap: Invalid pixmap. Skipping...\n",
-                        error->error_code);
-            break;
-
-        case BadLength:
-            mocha_error(stderr, "[%d]=BadLength: Incorrect request length.\n",
-                        error->error_code);
-            break;
-
-        case BadImplementation:
-            mocha_error(stderr,
-                        "[%d]=BadImplementation: Unsupported request.\n",
-                        error->error_code);
-            break;
-
-        default:
-            mocha_error(stderr, "[%d] Unknown X error occurred. Ignoring.\n",
-                        error->error_code);
-            break;
-    }
-
+int handleXError(Display *dpy, XErrorEvent *e) {
+    char error_text[1024];
+    XGetErrorText(dpy, e->error_code, error_text, sizeof(error_text));
+    mocha_log(
+        "X Error: %s (code: %d, request code: %d, minor code: %d, resource id: "
+        "%lu)",
+        error_text, e->error_code, e->request_code, e->minor_code,
+        e->resourceid);
     return 0;
 }
 
@@ -154,7 +75,7 @@ int handleXError(Display *_, XErrorEvent *error) {
  */
 int run_command(const char *cmd, char *buf, size_t buflen) {
     FILE *fp = popen(cmd, "r");
-    if (!fp) return -1;
+    if(!fp) return -1;
     size_t n = fread(buf, 1, buflen - 1, fp);
     buf[n] = '\0';
     pclose(fp);
@@ -162,6 +83,7 @@ int run_command(const char *cmd, char *buf, size_t buflen) {
 }
 
 void mocha_shutdown() {
+    mocha_log("Mocha is shutting down...");
     cleanup_toasts();
     XCloseDisplay(dpy);
     exit(0);

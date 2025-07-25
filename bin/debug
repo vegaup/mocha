@@ -2,27 +2,25 @@
 
 set -e
 
-make build
+pkill -f "Xephyr :3" || true
+rm -f /tmp/.X3-lock
 
-MOCHA="./mocha-shell"
-RESOLUTION="1920x1080"
+cmake -S . -B out
+cmake --build out
 
-if [ ! -f "$MOCHA" ]; then
-    echo "Error: $MOCHA not found"
+MOCHA="./out/mocha-shell"
+RESOLUTION="1600x900"
+
+if [ ! -x "$MOCHA" ]; then
+    echo "Error: $MOCHA not found or not executable"
     exit 1
 fi
 
-Xephyr :3 -screen "$RESOLUTION" &
+Xephyr :3 -screen "$RESOLUTION" -ac -br -noreset &
 XPID=$!
 
 echo "Waiting for Xephyr to be ready..."
-for i in $(seq 1 50); do
-    if xdpyinfo -display :3 >/dev/null 2>&1; then
-        echo "Xephyr is ready!"
-        break
-    fi
-    sleep 0.1
-done
+sleep 1
 
 if ! xdpyinfo -display :3 >/dev/null 2>&1; then
     echo "Error: Xephyr failed to start"

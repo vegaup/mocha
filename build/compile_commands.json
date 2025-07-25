@@ -1,0 +1,56 @@
+[
+{
+  "directory": "/home/tristan/Projects/Mocha/build",
+  "command": "/bin/clang -I/home/tristan/Projects/Mocha/include -I/usr/include/freetype2 -I/usr/include/libpng16 -I/usr/include/harfbuzz -I/usr/include/glib-2.0 -I/usr/lib/glib-2.0/include -I/usr/include/sysprof-6 -I/usr/include/cairo -I/usr/include/pixman-1  -Wno-deprecated-declarations -g -std=gnu17 -o CMakeFiles/mocha-shell.dir/src/main.c.o -c /home/tristan/Projects/Mocha/src/main.c",
+  "file": "/home/tristan/Projects/Mocha/src/main.c",
+  "output": "CMakeFiles/mocha-shell.dir/src/main.c.o"
+},
+{
+  "directory": "/home/tristan/Projects/Mocha/build",
+  "command": "/bin/clang -I/home/tristan/Projects/Mocha/include -I/usr/include/freetype2 -I/usr/include/libpng16 -I/usr/include/harfbuzz -I/usr/include/glib-2.0 -I/usr/lib/glib-2.0/include -I/usr/include/sysprof-6 -I/usr/include/cairo -I/usr/include/pixman-1  -Wno-deprecated-declarations -g -std=gnu17 -o CMakeFiles/mocha-shell.dir/src/event/event.c.o -c /home/tristan/Projects/Mocha/src/event/event.c",
+  "file": "/home/tristan/Projects/Mocha/src/event/event.c",
+  "output": "CMakeFiles/mocha-shell.dir/src/event/event.c.o"
+},
+{
+  "directory": "/home/tristan/Projects/Mocha/build",
+  "command": "/bin/clang -I/home/tristan/Projects/Mocha/include -I/usr/include/freetype2 -I/usr/include/libpng16 -I/usr/include/harfbuzz -I/usr/include/glib-2.0 -I/usr/lib/glib-2.0/include -I/usr/include/sysprof-6 -I/usr/include/cairo -I/usr/include/pixman-1  -Wno-deprecated-declarations -g -std=gnu17 -o CMakeFiles/mocha-shell.dir/src/features/launcher.c.o -c /home/tristan/Projects/Mocha/src/features/launcher.c",
+  "file": "/home/tristan/Projects/Mocha/src/features/launcher.c",
+  "output": "CMakeFiles/mocha-shell.dir/src/features/launcher.c.o"
+},
+{
+  "directory": "/home/tristan/Projects/Mocha/build",
+  "command": "/bin/clang -I/home/tristan/Projects/Mocha/include -I/usr/include/freetype2 -I/usr/include/libpng16 -I/usr/include/harfbuzz -I/usr/include/glib-2.0 -I/usr/lib/glib-2.0/include -I/usr/include/sysprof-6 -I/usr/include/cairo -I/usr/include/pixman-1  -Wno-deprecated-declarations -g -std=gnu17 -o CMakeFiles/mocha-shell.dir/src/ui/toast.c.o -c /home/tristan/Projects/Mocha/src/ui/toast.c",
+  "file": "/home/tristan/Projects/Mocha/src/ui/toast.c",
+  "output": "CMakeFiles/mocha-shell.dir/src/ui/toast.c.o"
+},
+{
+  "directory": "/home/tristan/Projects/Mocha/build",
+  "command": "/bin/clang -I/home/tristan/Projects/Mocha/include -I/usr/include/freetype2 -I/usr/include/libpng16 -I/usr/include/harfbuzz -I/usr/include/glib-2.0 -I/usr/lib/glib-2.0/include -I/usr/include/sysprof-6 -I/usr/include/cairo -I/usr/include/pixman-1  -Wno-deprecated-declarations -g -std=gnu17 -o CMakeFiles/mocha-shell.dir/src/util/client.c.o -c /home/tristan/Projects/Mocha/src/util/client.c",
+  "file": "/home/tristan/Projects/Mocha/src/util/client.c",
+  "output": "CMakeFiles/mocha-shell.dir/src/util/client.c.o"
+},
+{
+  "directory": "/home/tristan/Projects/Mocha/build",
+  "command": "/bin/clang -I/home/tristan/Projects/Mocha/include -I/usr/include/freetype2 -I/usr/include/libpng16 -I/usr/include/harfbuzz -I/usr/include/glib-2.0 -I/usr/lib/glib-2.0/include -I/usr/include/sysprof-6 -I/usr/include/cairo -I/usr/include/pixman-1  -Wno-deprecated-declarations -g -std=gnu17 -o CMakeFiles/mocha-shell.dir/src/util/config.c.o -c /home/tristan/Projects/Mocha/src/util/config.c",
+  "file": "/home/tristan/Projects/Mocha/src/util/config.c",
+  "output": "CMakeFiles/mocha-shell.dir/src/util/config.c.o"
+},
+{
+  "directory": "/home/tristan/Projects/Mocha/build",
+  "command": "/bin/clang -I/home/tristan/Projects/Mocha/include -I/usr/include/freetype2 -I/usr/include/libpng16 -I/usr/include/harfbuzz -I/usr/include/glib-2.0 -I/usr/lib/glib-2.0/include -I/usr/include/sysprof-6 -I/usr/include/cairo -I/usr/include/pixman-1  -Wno-deprecated-declarations -g -std=gnu17 -o CMakeFiles/mocha-shell.dir/src/util/mocha_util.c.o -c /home/tristan/Projects/Mocha/src/util/mocha_util.c",
+  "file": "/home/tristan/Projects/Mocha/src/util/mocha_util.c",
+  "output": "CMakeFiles/mocha-shell.dir/src/util/mocha_util.c.o"
+},
+{
+  "directory": "/home/tristan/Projects/Mocha/build",
+  "command": "/bin/clang -I/home/tristan/Projects/Mocha/include -I/usr/include/freetype2 -I/usr/include/libpng16 -I/usr/include/harfbuzz -I/usr/include/glib-2.0 -I/usr/lib/glib-2.0/include -I/usr/include/sysprof-6 -I/usr/include/cairo -I/usr/include/pixman-1  -Wno-deprecated-declarations -g -std=gnu17 -o CMakeFiles/mocha-shell.dir/src/mocha_launcher.c.o -c /home/tristan/Projects/Mocha/src/mocha_launcher.c",
+  "file": "/home/tristan/Projects/Mocha/src/mocha_launcher.c",
+  "output": "CMakeFiles/mocha-shell.dir/src/mocha_launcher.c.o"
+},
+{
+  "directory": "/home/tristan/Projects/Mocha/build",
+  "command": "/bin/clang -I/home/tristan/Projects/Mocha/include -I/usr/include/freetype2 -I/usr/include/libpng16 -I/usr/include/harfbuzz -I/usr/include/glib-2.0 -I/usr/lib/glib-2.0/include -I/usr/include/sysprof-6 -I/usr/include/cairo -I/usr/include/pixman-1  -Wno-deprecated-declarations -g -std=gnu17 -o CMakeFiles/mocha-shell.dir/src/util/app.c.o -c /home/tristan/Projects/Mocha/src/util/app.c",
+  "file": "/home/tristan/Projects/Mocha/src/util/app.c",
+  "output": "CMakeFiles/mocha-shell.dir/src/util/app.c.o"
+}
+]

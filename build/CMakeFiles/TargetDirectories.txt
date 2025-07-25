@@ -1,0 +1,7 @@
+/home/tristan/Projects/Mocha/build/CMakeFiles/mocha-shell.dir
+/home/tristan/Projects/Mocha/build/CMakeFiles/edit_cache.dir
+/home/tristan/Projects/Mocha/build/CMakeFiles/rebuild_cache.dir
+/home/tristan/Projects/Mocha/build/CMakeFiles/list_install_components.dir
+/home/tristan/Projects/Mocha/build/CMakeFiles/install.dir
+/home/tristan/Projects/Mocha/build/CMakeFiles/install/local.dir
+/home/tristan/Projects/Mocha/build/CMakeFiles/install/strip.dir

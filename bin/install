@@ -33,11 +33,12 @@ install_mocha () {
   cd $TMP_DIR
 
   log "Building..."
-  log "Make:"
-  make -j"$(nproc)"
+  log "cmake:"
+  cmake -S . -B out
+  cmake --build out
 
   log "Installing binary"
-  sudo mv mocha-shell /usr/local/bin/mocha-shell
+  sudo mv out/mocha-shell /usr/local/bin/mocha-shell
   log "Creating desktop entry..."
   sudo mv mocha.desktop /usr/share/xsessions/mocha.desktop
   log "Writing default config..."

@@ -1,4 +1,3 @@
-features {
-  tiling = false
-  quotes = true
-}
+tiling_enabled=1
+quotes_enabled=1
+border_radius=10

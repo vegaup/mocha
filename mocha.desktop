@@ -5,4 +5,3 @@ Exec=/usr/local/bin/mocha-shell
 Type=Application
 X-LightDM-DesktopName=Mocha
 DesktopNames=Mocha
-

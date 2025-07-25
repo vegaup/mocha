@@ -1,11 +1,16 @@
 #include "ui/toast.h"
+
+#include <X11/Xatom.h>
+#include <X11/Xft/Xft.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
-#include <X11/Xatom.h>
-#include "../util/config.h"
+#include <X11/extensions/Xrender.h>
+#include <cairo/cairo-xlib.h>
+#include <cairo/cairo.h>
 #include <math.h>
-#include <X11/Xft/Xft.h>
 #include <time.h>
+
+#include "util/config.h"
 
 #define MAX_QUOTES 64
 #define MAX_QUOTE_LEN 256
@@ -21,93 +26,127 @@ Toast *toasts = NULL;
 void load_quotes(const char *filename) {
     num_quotes = 0;
     FILE *f = fopen(filename, "r");
-    if (!f) return;
+    if(!f) return;
     char buf[MAX_QUOTE_LEN];
-    while (fgets(buf, sizeof(buf), f) && num_quotes < MAX_QUOTES) {
+    while(fgets(buf, sizeof(buf), f) && num_quotes < MAX_QUOTES) {
         size_t len = strlen(buf);
-        if (len > 0 && buf[len-1] == '\n') buf[len-1] = '\0';
-        strncpy(quotes[num_quotes], buf, MAX_QUOTE_LEN-1);
-        quotes[num_quotes][MAX_QUOTE_LEN-1] = '\0';
+        if(len > 0 && buf[len - 1] == '\n') buf[len - 1] = '\0';
+        strncpy(quotes[num_quotes], buf, MAX_QUOTE_LEN - 1);
+        quotes[num_quotes][MAX_QUOTE_LEN - 1] = '\0';
         num_quotes++;
     }
     fclose(f);
 }
 
 const char *get_random_quote() {
-    if (num_quotes == 0) return "";
+    if(num_quotes == 0) return "";
     srand(time(NULL));
     int idx = rand() % num_quotes;
     return quotes[idx];
 }
 
 void show_quote_window(const char *quote) {
-    if (quote_win) destroy_quote_window();
+    if(quote_win) destroy_quote_window();
     int w = quote_width;
     int h = 48;
     int x = (DisplayWidth(dpy, screen) - w) / 2;
     int y = DisplayHeight(dpy, screen) - h - 40;
+
+    Pixmap bg_pixmap =
+        XCreatePixmap(dpy, root, w, h, DefaultDepth(dpy, screen));
+    GC gc = XCreateGC(dpy, root, 0, NULL);
+    XCopyArea(dpy, root, bg_pixmap, gc, x, y, w, h, 0, 0);
+    XFreeGC(dpy, gc);
+
     XSetWindowAttributes attrs;
     attrs.override_redirect = True;
-    attrs.background_pixel = None;
-    attrs.border_pixel = None;
+    attrs.background_pixmap = bg_pixmap;
+    attrs.border_pixel = 0;
     attrs.event_mask = ExposureMask;
+
     quote_win = XCreateWindow(
-        dpy, root, x, y, w, h, 1,
-        DefaultDepth(dpy, screen), CopyFromParent, DefaultVisual(dpy, screen),
-        CWOverrideRedirect | CWBackPixel | CWBorderPixel | CWEventMask, &attrs);
+        dpy, root, x, y, w, h, 0, DefaultDepth(dpy, screen), CopyFromParent,
+        DefaultVisual(dpy, screen),
+        CWOverrideRedirect | CWBackPixmap | CWBorderPixel | CWEventMask,
+        &attrs);
+
     XMapWindow(dpy, quote_win);
-    strncpy(current_quote, quote, MAX_QUOTE_LEN-1);
-    current_quote[MAX_QUOTE_LEN-1] = '\0';
+    XFreePixmap(dpy, bg_pixmap);
+
+    strncpy(current_quote, quote, MAX_QUOTE_LEN - 1);
+    current_quote[MAX_QUOTE_LEN - 1] = '\0';
 }
 
 void update_quote_window(const char *quote) {
-    if (!quote_win) return;
-    strncpy(current_quote, quote, MAX_QUOTE_LEN-1);
-    current_quote[MAX_QUOTE_LEN-1] = '\0';
+    if(!quote_win) return;
+    strncpy(current_quote, quote, MAX_QUOTE_LEN - 1);
+    current_quote[MAX_QUOTE_LEN - 1] = '\0';
     XClearWindow(dpy, quote_win);
 }
 
 void destroy_quote_window() {
-    if (quote_win) {
+    if(quote_win) {
         XDestroyWindow(dpy, quote_win);
         quote_win = 0;
     }
 }
 
 void draw_quote_window() {
-    if (!quote_win) return;
-    XftDraw *draw = XftDrawCreate(dpy, quote_win, DefaultVisual(dpy, screen), DefaultColormap(dpy, screen));
-    if (!draw) return;
+    if(!quote_win) return;
+    int w = quote_width;
+    int h = 48;
+
+    cairo_surface_t *surface = cairo_xlib_surface_create(
+        dpy, quote_win, DefaultVisual(dpy, screen), w, h);
+    cairo_t *cr = cairo_create(surface);
+
+    cairo_set_source_rgba(cr, 0, 0, 0, 0.5);
+    cairo_paint(cr);
+
+    cairo_destroy(cr);
+    cairo_surface_destroy(surface);
+
+    XftDraw *draw = XftDrawCreate(dpy, quote_win, DefaultVisual(dpy, screen),
+                                  DefaultColormap(dpy, screen));
+    if(!draw) return;
+
     int font_size = 14;
     char font_pattern[128];
-    snprintf(font_pattern, sizeof(font_pattern), "DejaVuSansMono:size=%d", font_size);
+    snprintf(font_pattern, sizeof(font_pattern), "DejaVuSansMono:size=%d",
+             font_size);
     XftFont *font = XftFontOpenName(dpy, screen, font_pattern);
-    if (!font) {
+    if(!font) {
         snprintf(font_pattern, sizeof(font_pattern), "sans:size=%d", font_size);
         font = XftFontOpenName(dpy, screen, font_pattern);
     }
-    if (!font) {
+    if(!font) {
         XftDrawDestroy(draw);
         return;
     }
-
     XftColor xft_fg;
-    XRenderColor render_fg = { .red = 0xFFFF, .green = 0xFFFF, .blue = 0xFFFF, .alpha = 0xFFFF };
-    if (!XftColorAllocValue(dpy, DefaultVisual(dpy, screen), DefaultColormap(dpy, screen), &render_fg, &xft_fg)) {
+    XRenderColor render_fg = {
+        .red = 0xFFFF, .green = 0xFFFF, .blue = 0xFFFF, .alpha = 0xFFFF};
+    if(!XftColorAllocValue(dpy, DefaultVisual(dpy, screen),
+                           DefaultColormap(dpy, screen), &render_fg, &xft_fg)) {
         xft_fg.color.red = 0xFFFF;
         xft_fg.color.green = 0xFFFF;
         xft_fg.color.blue = 0xFFFF;
         xft_fg.color.alpha = 0xFFFF;
     }
-    int y_offset = 32;
+    int y_offset = 20;
     XGlyphInfo extents;
-    XftTextExtentsUtf8(dpy, font, (FcChar8 *)current_quote, strlen(current_quote), &extents);
+    XftTextExtentsUtf8(dpy, font, (FcChar8 *)current_quote,
+                       strlen(current_quote), &extents);
     int win_width = quote_width;
     int x_offset = (win_width - extents.width) / 2;
-    if (x_offset < 0) x_offset = 0;
-    XftDrawStringUtf8(draw, &xft_fg, font, x_offset, y_offset, (FcChar8 *)current_quote, strlen(current_quote));
+    if(x_offset < 0) x_offset = 0;
+    XftDrawStringUtf8(draw, &xft_fg, font, x_offset, y_offset,
+                      (FcChar8 *)current_quote, strlen(current_quote));
     XftFontClose(dpy, font);
     XftDrawDestroy(draw);
+    if(colormap != DefaultColormap(dpy, screen)) {
+        XFreeColormap(dpy, colormap);
+    }
 }
 
 void show_toast(const char *message) {
@@ -157,11 +196,11 @@ void show_toast(const char *message) {
 Toast *status_toast_ptr = NULL;
 
 void status_toast(const char *message) {
-    int size = 200; // square size
+    int size = 200;
     int x = (DisplayWidth(dpy, screen) - size) / 2;
     int y = (DisplayHeight(dpy, screen) - size) / 2;
 
-    if (status_toast_ptr) {
+    if(status_toast_ptr) {
         XDestroyWindow(dpy, status_toast_ptr->win);
         free(status_toast_ptr);
         status_toast_ptr = NULL;
@@ -174,8 +213,8 @@ void status_toast(const char *message) {
     attrs.event_mask = ExposureMask;
 
     Window toast_win = XCreateWindow(
-        dpy, root, x, y, size, size, 1,
-        DefaultDepth(dpy, screen), CopyFromParent, DefaultVisual(dpy, screen),
+        dpy, root, x, y, size, size, 1, DefaultDepth(dpy, screen),
+        CopyFromParent, DefaultVisual(dpy, screen),
         CWOverrideRedirect | CWBackPixel | CWBorderPixel | CWEventMask, &attrs);
 
     XMapWindow(dpy, toast_win);
@@ -202,12 +241,12 @@ void animate_toasts() {
     int toast_pad = TOAST_PADDING;
     int toast_h = TOAST_HEIGHT;
     int toast_y = toast_pad;
-    while (t) {
+    while(t) {
         XMoveWindow(dpy, t->win, t->current_x, toast_y);
         toast_y += toast_h + toast_pad;
         t = t->next;
     }
-    if (status_toast_ptr) {
+    if(status_toast_ptr) {
         int size = 200;
         int x = (DisplayWidth(dpy, screen) - size) / 2;
         int y = (DisplayHeight(dpy, screen) - size) / 2;
@@ -228,7 +267,8 @@ void cleanup_toasts() {
             t = &(*t)->next;
         }
     }
-    if (status_toast_ptr && difftime(now, status_toast_ptr->created_at) > TOAST_TIMEOUT) {
+    if(status_toast_ptr &&
+       difftime(now, status_toast_ptr->created_at) > TOAST_TIMEOUT) {
         XDestroyWindow(dpy, status_toast_ptr->win);
         free(status_toast_ptr);
         status_toast_ptr = NULL;

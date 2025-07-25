@@ -2,9 +2,10 @@
 
 set -e
 
-make build
+cmake -S . -B out
+cmake --build out
 
-MOCHA="./mocha-shell"
+MOCHA="./out/mocha-shell"
 
 if [ ! -f "$MOCHA" ]; then
     echo "Error: $MOCHA not found"
